@@ -36,7 +36,7 @@ else:
 # Opções de status
 status_opcoes = ["AGUARDANDO", "RECEBIDA", "VALIDADA", "ENVIADA"]
 
-st.subheader("📋 Tabela de Faturas (edite direto na célula)")
+st.subheader("📋 Tabela de Faturas")
 
 # Tabela editável
 df_editado = st.data_editor(
