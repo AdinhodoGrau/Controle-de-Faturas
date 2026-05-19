@@ -33,9 +33,12 @@ def load_clientes(sheet_url: str) -> pd.DataFrame:
     client = get_client()
     sheet = client.open_by_url(sheet_url)
     data = sheet.worksheet("clientes").get_all_records()
-    return pd.DataFrame(data) if data else pd.DataFrame(columns=["ID", "Cliente", "UC"])
+    return pd.DataFrame(data) if data else pd.DataFrame(columns=["ID", "Cliente", "UC", "Data de Emissão"])
 
 def save_faturas(df: pd.DataFrame, sheet_url: str):
+    if df.empty:
+        st.error("⚠️ Operação cancelada: tentativa de salvar tabela vazia.")
+        return
     client = get_client()
     sheet = client.open_by_url(sheet_url).worksheet("faturas")
     df_str = df.astype(str).replace("nan", "")
@@ -43,7 +46,6 @@ def save_faturas(df: pd.DataFrame, sheet_url: str):
     sheet.update([df_str.columns.tolist()] + df_str.values.tolist())
 
 def gerar_faturas_mes(df_faturas: pd.DataFrame, df_clientes: pd.DataFrame, mes_ref: str, sheet_url: str):
-    """Gera uma linha AGUARDANDO para cada cliente no mês de referência."""
     faturas_existentes = df_faturas[df_faturas["Mês Referência"] == mes_ref]
     ucs_existentes = set(faturas_existentes["UC"].astype(str).tolist())
 
@@ -52,14 +54,12 @@ def gerar_faturas_mes(df_faturas: pd.DataFrame, df_clientes: pd.DataFrame, mes_r
 
     for _, cliente in df_clientes.iterrows():
         if str(cliente["UC"]) not in ucs_existentes:
-
-            # ✅ Monta a data de emissão: dia fixo do cliente + mês de referência
             try:
-                dia = int(cliente["Data de Emissão"])  # ex: 10
-                ano, mes = mes_ref.split("-")           # ex: "2026", "05"
-                data_emissao = f"{ano}-{mes}-{dia:02d}" # ex: "2026-05-10"
+                dia = int(cliente["Data de Emissão"])
+                ano, mes = mes_ref.split("-")
+                data_emissao = f"{ano}-{mes}-{dia:02d}"
             except:
-                data_emissao = ""  # Se der erro, deixa em branco
+                data_emissao = ""
 
             novas.append({
                 "ID": proximo_id,
@@ -80,37 +80,48 @@ def gerar_faturas_mes(df_faturas: pd.DataFrame, df_clientes: pd.DataFrame, mes_r
 
     return df_faturas, 0
 
+def formatar_mes(mes_str: str) -> str:
+    try:
+        return datetime.strptime(mes_str, "%Y-%m").strftime("%B de %Y").capitalize()
+    except:
+        return mes_str
+
 # ── Config ─────────────────────────────────────────────────────────────────────
 SHEET_URL = st.secrets["SHEET_URL"]
-MES_ATUAL = datetime.now().strftime("%Y-%m")  # ex: "2026-05"
-MES_FORMATADO = datetime.now().strftime("%B de %Y").capitalize()  # ex: "Maio de 2026"
+MES_ATUAL = datetime.now().strftime("%Y-%m")
+status_opcoes = ["AGUARDANDO", "RECEBIDA", "VALIDADA", "ENVIADA"]  # ✅ definido aqui, antes de tudo
 
 # ── Interface ──────────────────────────────────────────────────────────────────
 st.title("📊 Controle de Faturas")
-st.markdown(f"### 📅 Mês de Referência: `{MES_FORMATADO}`")
 st.divider()
 
 # Carrega dados
 df_faturas  = load_faturas(SHEET_URL)
 df_clientes = load_clientes(SHEET_URL)
 
-# ── Geração automática do mês ──────────────────────────────────────────────────
+# ── Geração automática do mês atual ───────────────────────────────────────────
 if not df_clientes.empty:
-    faturas_mes_atual = df_faturas[df_faturas["Mês Referência"] == MES_ATUAL]
-    if faturas_mes_atual.empty:
-        with st.spinner(f"Gerando faturas para {MES_FORMATADO}..."):
+    if df_faturas[df_faturas["Mês Referência"] == MES_ATUAL].empty:
+        with st.spinner(f"Gerando faturas para {formatar_mes(MES_ATUAL)}..."):
             df_faturas, qtd = gerar_faturas_mes(df_faturas, df_clientes, MES_ATUAL, SHEET_URL)
-        st.success(f"✅ {qtd} faturas geradas automaticamente para {MES_FORMATADO}!")
+        st.success(f"✅ {qtd} faturas geradas para {formatar_mes(MES_ATUAL)}!")
         st.rerun()
 
-# ── Filtra apenas mês atual ────────────────────────────────────────────────────
-df_mes = df_faturas[df_faturas["Mês Referência"] == MES_ATUAL].copy()
+# ── Seletor de mês ─────────────────────────────────────────────────────────────
+meses_disponiveis = sorted(df_faturas["Mês Referência"].unique().tolist(), reverse=True)
 
-# ── Filtro de status ───────────────────────────────────────────────────────────
-status_filtro = st.selectbox("Filtrar por status", ["Todos"] + status_opcoes)
-df_filtrado = df_mes[df_mes["Status"] == status_filtro].copy() if status_filtro != "Todos" else df_mes.copy()
+mes_selecionado = st.selectbox(
+    "📅 Mês de Referência",
+    options=meses_disponiveis,
+    format_func=formatar_mes,
+    index=0
+)
 
-# ── KPIs com destaque colorido ─────────────────────────────────────────────────
+st.markdown(f"## 📅 {formatar_mes(mes_selecionado)}")
+
+# ── KPIs ───────────────────────────────────────────────────────────────────────
+df_mes = df_faturas[df_faturas["Mês Referência"] == mes_selecionado].copy()
+
 st.markdown("""
 <style>
 .kpi-card {
@@ -151,23 +162,30 @@ col4.markdown(f'<div class="kpi-card kpi-enviada"><div class="kpi-label">Enviada
 
 st.divider()
 
+# ── Filtro de status ───────────────────────────────────────────────────────────
+status_filtro = st.selectbox("Filtrar por status", ["Todos"] + status_opcoes)
+df_filtrado = df_mes[df_mes["Status"] == status_filtro].copy() if status_filtro != "Todos" else df_mes.copy()
+
 # ── Prepara df para exibição ───────────────────────────────────────────────────
 df_display = df_filtrado.copy()
-
-# Converte Data de Emissão para date (data_editor exige tipo correto)
 df_display["Data de Emissão"] = pd.to_datetime(
     df_display["Data de Emissão"], errors="coerce"
-).dt.date  # ✅ converte para date, valores inválidos viram None
+).dt.date
 
 # ── Tabela editável ────────────────────────────────────────────────────────────
+col_table, col_btn = st.columns([6, 1])
+with col_table:
+    st.subheader("📋 Faturas")
+with col_btn:
+    if st.button("🔄 Recarregar"):
+        st.cache_data.clear()
+        st.rerun()
+
 df_editado = st.data_editor(
     df_display,
     column_config={
         "Status": st.column_config.SelectboxColumn("Status", options=status_opcoes),
-        "Data de Emissão": st.column_config.DateColumn(
-            "Data de Emissão",
-            format="DD/MM/YYYY"
-        ),
+        "Data de Emissão": st.column_config.DateColumn("Data de Emissão", format="DD/MM/YYYY"),
     },
     use_container_width=True,
     num_rows="fixed",
@@ -179,7 +197,6 @@ st.divider()
 # ── Salvar ─────────────────────────────────────────────────────────────────────
 if st.button("💾 Salvar alterações"):
     with st.spinner("Salvando no Google Sheets..."):
-        # ✅ Converte date de volta para string antes de salvar
         df_para_salvar = df_editado.copy()
         df_para_salvar["Data de Emissão"] = df_para_salvar["Data de Emissão"].astype(str).replace("None", "")
 
