@@ -52,12 +52,21 @@ def gerar_faturas_mes(df_faturas: pd.DataFrame, df_clientes: pd.DataFrame, mes_r
 
     for _, cliente in df_clientes.iterrows():
         if str(cliente["UC"]) not in ucs_existentes:
+
+            # ✅ Monta a data de emissão: dia fixo do cliente + mês de referência
+            try:
+                dia = int(cliente["Data de Emissão"])  # ex: 10
+                ano, mes = mes_ref.split("-")           # ex: "2026", "05"
+                data_emissao = f"{ano}-{mes}-{dia:02d}" # ex: "2026-05-10"
+            except:
+                data_emissao = ""  # Se der erro, deixa em branco
+
             novas.append({
                 "ID": proximo_id,
                 "Cliente": cliente["Cliente"],
                 "UC": cliente["UC"],
                 "Mês Referência": mes_ref,
-                "Data de Emissão": "",
+                "Data de Emissão": data_emissao,
                 "Status": "AGUARDANDO"
             })
             proximo_id += 1
