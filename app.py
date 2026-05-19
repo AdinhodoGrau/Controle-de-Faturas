@@ -33,25 +33,38 @@ if status_filtro != "Todos":
 else:
     df_filtrado = df.copy()
 
-# Opções de status
+# Adiciona coluna de seleção se não existir
+if "Selecionar" not in df_filtrado.columns:
+    df_filtrado["Selecionar"] = False
+
 status_opcoes = ["AGUARDANDO", "RECEBIDA", "VALIDADA", "ENVIADA"]
 
-st.subheader("📋 Tabela de Faturas (edite direto na célula)")
+st.subheader("📋 Tabela de Faturas (edite ou selecione para ação em massa)")
 
-# Tabela editável
 df_editado = st.data_editor(
     df_filtrado,
     column_config={
+        "Selecionar": st.column_config.CheckboxColumn("Selecionar"),
         "Status": st.column_config.SelectboxColumn(
             "Status",
             options=status_opcoes
         )
     },
-    use_container_width=True,
-    num_rows="dynamic"
+    use_container_width=True
 )
 
 st.divider()
+
+# 🔥 AÇÃO EM MASSA
+st.subheader("⚡ Alteração em massa")
+
+novo_status_massa = st.selectbox("Novo status", status_opcoes)
+
+if st.button("Aplicar nas selecionadas"):
+    df_editado.loc[df_editado["Selecionar"] == True, "Status"] = novo_status_massa
+    st.success("Status atualizado nas linhas selecionadas!")
+
+    st.dataframe(df_editado)
 
 # Botão de salvar (simulação por enquanto)
 if st.button("💾 Salvar alterações"):
