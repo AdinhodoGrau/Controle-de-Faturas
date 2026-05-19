@@ -117,8 +117,6 @@ mes_selecionado = st.selectbox(
     index=0
 )
 
-st.markdown(f"## 📅 {formatar_mes(mes_selecionado)}")
-
 # ── KPIs ───────────────────────────────────────────────────────────────────────
 df_mes = df_faturas[df_faturas["Mês Referência"] == mes_selecionado].copy()
 
