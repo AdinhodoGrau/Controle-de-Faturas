@@ -26,20 +26,33 @@ col4.metric("Enviadas", len(df[df["Status"] == "ENVIADA"]))
 st.divider()
 
 # Filtro
-status = st.selectbox("Filtrar por status", ["Todos"] + list(df["Status"].unique()))
+status_filtro = st.selectbox("Filtrar por status", ["Todos"] + list(df["Status"].unique()))
 
-if status != "Todos":
-    df = df[df["Status"] == status]
+if status_filtro != "Todos":
+    df_filtrado = df[df["Status"] == status_filtro]
+else:
+    df_filtrado = df.copy()
 
-st.dataframe(df)
+# Opções de status
+status_opcoes = ["AGUARDANDO", "RECEBIDA", "VALIDADA", "ENVIADA"]
+
+st.subheader("📋 Tabela de Faturas (edite direto na célula)")
+
+# Tabela editável
+df_editado = st.data_editor(
+    df_filtrado,
+    column_config={
+        "Status": st.column_config.SelectboxColumn(
+            "Status",
+            options=status_opcoes
+        )
+    },
+    use_container_width=True,
+    num_rows="dynamic"
+)
 
 st.divider()
 
-# Atualização de status
-st.subheader("Atualizar Status")
-
-id_fatura = st.text_input("ID da fatura")
-novo_status = st.selectbox("Novo Status", ["AGUARDANDO","RECEBIDA","VALIDADA","ENVIADA"])
-
-if st.button("Atualizar"):
-    st.success(f"Fatura {id_fatura} atualizada para {novo_status}")
+# Botão de salvar (simulação por enquanto)
+if st.button("💾 Salvar alterações"):
+    st.success("Alterações salvas! (em breve conectado ao Google Sheets)")
