@@ -120,24 +120,27 @@ st.divider()
 status_filtro = st.selectbox("Filtrar por status", ["Todos"] + status_opcoes)
 df_filtrado = df_mes[df_mes["Status"] == status_filtro].copy() if status_filtro != "Todos" else df_mes.copy()
 
-# ── Tabela editável ────────────────────────────────────────────────────────────
-col_table, col_btn = st.columns([5, 1])
-with col_table:
-    st.subheader("📋 Faturas")
-with col_btn:
-    if st.button("🔄 Recarregar"):
-        st.cache_data.clear()
-        st.rerun()
+# ── Prepara df para exibição ───────────────────────────────────────────────────
+df_display = df_filtrado.copy()
 
+# Converte Data de Emissão para date (data_editor exige tipo correto)
+df_display["Data de Emissão"] = pd.to_datetime(
+    df_display["Data de Emissão"], errors="coerce"
+).dt.date  # ✅ converte para date, valores inválidos viram None
+
+# ── Tabela editável ────────────────────────────────────────────────────────────
 df_editado = st.data_editor(
-    df_filtrado,
+    df_display,
     column_config={
         "Status": st.column_config.SelectboxColumn("Status", options=status_opcoes),
-        "Data de Emissão": st.column_config.DateColumn("Data de Emissão", format="DD/MM/YYYY"),
+        "Data de Emissão": st.column_config.DateColumn(
+            "Data de Emissão",
+            format="DD/MM/YYYY"
+        ),
     },
     use_container_width=True,
-    num_rows="fixed",  # Clientes vêm da base, não se adicionam manualmente
-    disabled=["ID", "Cliente", "UC", "Mês Referência"],  # Só Status e Data são editáveis
+    num_rows="fixed",
+    disabled=["ID", "Cliente", "UC", "Mês Referência"],
 )
 
 st.divider()
@@ -145,11 +148,15 @@ st.divider()
 # ── Salvar ─────────────────────────────────────────────────────────────────────
 if st.button("💾 Salvar alterações"):
     with st.spinner("Salvando no Google Sheets..."):
-        df_faturas.update(df_editado)
-        # Linhas novas (se houver)
-        novos_ids = df_editado.index.difference(df_faturas.index)
+        # ✅ Converte date de volta para string antes de salvar
+        df_para_salvar = df_editado.copy()
+        df_para_salvar["Data de Emissão"] = df_para_salvar["Data de Emissão"].astype(str).replace("None", "")
+
+        df_faturas.update(df_para_salvar)
+        novos_ids = df_para_salvar.index.difference(df_faturas.index)
         if not novos_ids.empty:
-            df_faturas = pd.concat([df_faturas, df_editado.loc[novos_ids]])
+            df_faturas = pd.concat([df_faturas, df_para_salvar.loc[novos_ids]])
+
         save_faturas(df_faturas, SHEET_URL)
         st.cache_data.clear()
     st.success("✅ Alterações salvas!")
