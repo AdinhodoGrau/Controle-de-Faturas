@@ -106,13 +106,44 @@ if not df_clientes.empty:
 # ── Filtra apenas mês atual ────────────────────────────────────────────────────
 df_mes = df_faturas[df_faturas["Mês Referência"] == MES_ATUAL].copy()
 
-# ── KPIs ───────────────────────────────────────────────────────────────────────
-status_opcoes = ["AGUARDANDO", "RECEBIDA", "VALIDADA", "ENVIADA"]
+# ── KPIs com destaque colorido ─────────────────────────────────────────────────
+st.markdown("""
+<style>
+.kpi-card {
+    border-radius: 12px;
+    padding: 20px 24px;
+    text-align: center;
+    backdrop-filter: blur(8px);
+}
+.kpi-label {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+.kpi-value {
+    font-size: 42px;
+    font-weight: 800;
+    line-height: 1;
+}
+.kpi-aguardando { background: rgba(220, 38, 38, 0.15); border: 1.5px solid rgba(220, 38, 38, 0.4); color: #dc2626; }
+.kpi-recebida   { background: rgba(234, 88, 12, 0.15); border: 1.5px solid rgba(234, 88, 12, 0.4); color: #ea580c; }
+.kpi-validada   { background: rgba(22, 163, 74, 0.15); border: 1.5px solid rgba(22, 163, 74, 0.4); color: #16a34a; }
+.kpi-enviada    { background: rgba(37, 99, 235, 0.15); border: 1.5px solid rgba(37, 99, 235, 0.4); color: #2563eb; }
+</style>
+""", unsafe_allow_html=True)
+
+n_aguardando = len(df_mes[df_mes["Status"] == "AGUARDANDO"])
+n_recebida   = len(df_mes[df_mes["Status"] == "RECEBIDA"])
+n_validada   = len(df_mes[df_mes["Status"] == "VALIDADA"])
+n_enviada    = len(df_mes[df_mes["Status"] == "ENVIADA"])
+
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("Aguardando", len(df_mes[df_mes["Status"] == "AGUARDANDO"]))
-col2.metric("Recebidas",  len(df_mes[df_mes["Status"] == "RECEBIDA"]))
-col3.metric("Validadas",  len(df_mes[df_mes["Status"] == "VALIDADA"]))
-col4.metric("Enviadas",   len(df_mes[df_mes["Status"] == "ENVIADA"]))
+col1.markdown(f'<div class="kpi-card kpi-aguardando"><div class="kpi-label">Aguardando</div><div class="kpi-value">{n_aguardando}</div></div>', unsafe_allow_html=True)
+col2.markdown(f'<div class="kpi-card kpi-recebida"><div class="kpi-label">Recebidas</div><div class="kpi-value">{n_recebida}</div></div>', unsafe_allow_html=True)
+col3.markdown(f'<div class="kpi-card kpi-validada"><div class="kpi-label">Validadas</div><div class="kpi-value">{n_validada}</div></div>', unsafe_allow_html=True)
+col4.markdown(f'<div class="kpi-card kpi-enviada"><div class="kpi-label">Enviadas</div><div class="kpi-value">{n_enviada}</div></div>', unsafe_allow_html=True)
 
 st.divider()
 
