@@ -32,7 +32,7 @@ def save_data(df: pd.DataFrame, sheet_url: str):
     sheet.update([df.columns.tolist()] + df.values.tolist())
 
 # ── Configuração ───────────────────────────────────────────────────────────────
-SHEET_URL = "https://docs.google.com/spreadsheets/d/SEU_ID_AQUI/edit"
+SHEET_URL = st.secrets["SHEET_URL"]
 
 # ── Interface ──────────────────────────────────────────────────────────────────
 st.title("📊 Controle de Faturas")
