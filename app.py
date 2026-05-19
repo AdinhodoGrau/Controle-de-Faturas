@@ -127,10 +127,10 @@ st.markdown("""
     font-weight: 800;
     line-height: 1;
 }
-.kpi-aguardando { background: rgba(220, 38, 38, 0.15); border: 1.5px solid rgba(220, 38, 38, 0.4); color: #dc2626; }
-.kpi-recebida   { background: rgba(234, 88, 12, 0.15); border: 1.5px solid rgba(234, 88, 12, 0.4); color: #ea580c; }
-.kpi-validada   { background: rgba(22, 163, 74, 0.15); border: 1.5px solid rgba(22, 163, 74, 0.4); color: #16a34a; }
-.kpi-enviada    { background: rgba(37, 99, 235, 0.15); border: 1.5px solid rgba(37, 99, 235, 0.4); color: #2563eb; }
+.kpi-aguardando { background: rgba(220, 38, 38, 0.15); border: 1.5px solid rgba(220, 38, 38, 0.4); color: #FFFFFF; }
+.kpi-recebida   { background: rgba(234, 88, 12, 0.15); border: 1.5px solid rgba(234, 88, 12, 0.4); color: #FFFFFF; }
+.kpi-validada   { background: rgba(22, 163, 74, 0.15); border: 1.5px solid rgba(22, 163, 74, 0.4); color: #FFFFFF; }
+.kpi-enviada    { background: rgba(37, 99, 235, 0.15); border: 1.5px solid rgba(37, 99, 235, 0.4); color: #FFFFFF; }
 </style>
 """, unsafe_allow_html=True)
 
