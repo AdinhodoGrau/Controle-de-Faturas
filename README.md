@@ -1,4 +1,4 @@
-# 📊 Controle de Faturas
+# 📊 Controle de Faturas 
 
 Mini web app para controle operacional de faturas de energia.
 
