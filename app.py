@@ -16,9 +16,9 @@ def get_client():
     creds = Credentials.from_service_account_info(
         st.secrets["gcp_service_account"], scopes=SCOPES
     )
-    return gspread.authorize(creds)
+    return gspread.Client(auth=creds)  # ✅ forma atual, authorize() está deprecado
 
-@st.cache_data(ttl=60)  # Atualiza os dados a cada 60 segundos
+@st.cache_data(ttl=60)
 def load_data(sheet_url: str) -> pd.DataFrame:
     client = get_client()
     sheet = client.open_by_url(sheet_url).sheet1
@@ -28,19 +28,29 @@ def load_data(sheet_url: str) -> pd.DataFrame:
 def save_data(df: pd.DataFrame, sheet_url: str):
     client = get_client()
     sheet = client.open_by_url(sheet_url).sheet1
+    # Converte tudo para string para evitar erros de tipo no Sheets
+    df_str = df.astype(str).replace("nan", "")
     sheet.clear()
-    sheet.update([df.columns.tolist()] + df.values.tolist())
+    sheet.update([df_str.columns.tolist()] + df_str.values.tolist())
 
 # ── Configuração ───────────────────────────────────────────────────────────────
 SHEET_URL = st.secrets["SHEET_URL"]
+status_opcoes = ["AGUARDANDO", "RECEBIDA", "VALIDADA", "ENVIADA"]
 
 # ── Interface ──────────────────────────────────────────────────────────────────
 st.title("📊 Controle de Faturas")
 
+# Botão de recarregar
+col_title, col_reload = st.columns([6, 1])
+with col_reload:
+    if st.button("🔄 Recarregar"):
+        st.cache_data.clear()
+        st.rerun()
+
+# Carrega dados
 df = load_data(SHEET_URL)
 
-# KPIs
-status_opcoes = ["AGUARDANDO", "RECEBIDA", "VALIDADA", "ENVIADA"]
+# ── KPIs ───────────────────────────────────────────────────────────────────────
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Aguardando", len(df[df["Status"] == "AGUARDANDO"]))
 col2.metric("Recebidas",  len(df[df["Status"] == "RECEBIDA"]))
@@ -49,11 +59,11 @@ col4.metric("Enviadas",   len(df[df["Status"] == "ENVIADA"]))
 
 st.divider()
 
-# Filtro
+# ── Filtro ─────────────────────────────────────────────────────────────────────
 status_filtro = st.selectbox("Filtrar por status", ["Todos"] + status_opcoes)
-df_filtrado = df[df["Status"] == status_filtro] if status_filtro != "Todos" else df.copy()
+df_filtrado = df[df["Status"] == status_filtro].copy() if status_filtro != "Todos" else df.copy()
 
-# Tabela editável
+# ── Tabela editável ────────────────────────────────────────────────────────────
 st.subheader("📋 Faturas")
 df_editado = st.data_editor(
     df_filtrado,
@@ -66,11 +76,23 @@ df_editado = st.data_editor(
 
 st.divider()
 
-# Salvar
+# ── Salvar ─────────────────────────────────────────────────────────────────────
 if st.button("💾 Salvar alterações"):
-    with st.spinner("Salvando no Google Sheets..."):
-        # Atualiza apenas as linhas editadas no df original
-        df.update(df_editado)
-        save_data(df, SHEET_URL)
-        st.cache_data.clear()  # Força recarregar na próxima vez
-    st.success("✅ Alterações salvas no Google Sheets!")
+    if df_editado.empty:
+        st.warning("⚠️ Nenhum dado para salvar.")
+    else:
+        with st.spinner("Salvando no Google Sheets..."):
+            # ✅ Mescla correto: atualiza o df completo com as edições do filtrado
+            df_final = df.copy()
+            df_final.update(df_editado)
+
+            # Linhas novas adicionadas na tabela filtrada (não existiam no df original)
+            novos_ids = df_editado.index.difference(df_final.index)
+            if not novos_ids.empty:
+                df_final = pd.concat([df_final, df_editado.loc[novos_ids]])
+
+            save_data(df_final, SHEET_URL)
+            st.cache_data.clear()
+
+        st.success(f"✅ {len(df_editado)} linha(s) salvas no Google Sheets!")
+        st.rerun()  # Recarrega a tabela com os dados atualizados
