@@ -106,6 +106,10 @@ if not df_clientes.empty:
 # ── Filtra apenas mês atual ────────────────────────────────────────────────────
 df_mes = df_faturas[df_faturas["Mês Referência"] == MES_ATUAL].copy()
 
+# ── Filtro de status ───────────────────────────────────────────────────────────
+status_filtro = st.selectbox("Filtrar por status", ["Todos"] + status_opcoes)
+df_filtrado = df_mes[df_mes["Status"] == status_filtro].copy() if status_filtro != "Todos" else df_mes.copy()
+
 # ── KPIs com destaque colorido ─────────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -146,10 +150,6 @@ col3.markdown(f'<div class="kpi-card kpi-validada"><div class="kpi-label">Valida
 col4.markdown(f'<div class="kpi-card kpi-enviada"><div class="kpi-label">Enviadas</div><div class="kpi-value">{n_enviada}</div></div>', unsafe_allow_html=True)
 
 st.divider()
-
-# ── Filtro de status ───────────────────────────────────────────────────────────
-status_filtro = st.selectbox("Filtrar por status", ["Todos"] + status_opcoes)
-df_filtrado = df_mes[df_mes["Status"] == status_filtro].copy() if status_filtro != "Todos" else df_mes.copy()
 
 # ── Prepara df para exibição ───────────────────────────────────────────────────
 df_display = df_filtrado.copy()
