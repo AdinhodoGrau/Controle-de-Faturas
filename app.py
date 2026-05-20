@@ -161,9 +161,29 @@ col4.markdown(f'<div class="kpi-card kpi-enviada"><div class="kpi-label">Enviada
 
 st.divider()
 
-# ── Filtro de status ───────────────────────────────────────────────────────────
-status_filtro = st.selectbox("Filtrar por status", ["Todos"] + status_opcoes)
-df_filtrado = df_mes[df_mes["Status"] == status_filtro].copy() if status_filtro != "Todos" else df_mes.copy()
+# ── Filtro de status + Alteração em massa ──────────────────────────────────────
+col_filtro, col_massa = st.columns([3, 3])
+
+with col_filtro:
+    status_filtro = st.selectbox("Filtrar por status", ["Todos"] + status_opcoes)
+    df_filtrado = df_mes[df_mes["Status"] == status_filtro].copy() if status_filtro != "Todos" else df_mes.copy()
+
+with col_massa:
+    linhas_selecionadas = df_editado[df_editado["✅"] == True] if "df_editado" in dir() else pd.DataFrame()
+    novo_status = st.selectbox("Novo status para selecionadas", options=status_opcoes, key="status_massa")
+    if st.button("⚡ Aplicar em massa"):
+        if linhas_selecionadas.empty:
+            st.warning("Marque ao menos uma fatura na tabela.")
+        else:
+            with st.spinner("Salvando..."):
+                df_para_salvar = df_editado.drop(columns=["✅"]).copy()
+                df_para_salvar["Data de Emissão"] = df_para_salvar["Data de Emissão"].astype(str).replace("None", "")
+                df_para_salvar.loc[linhas_selecionadas.index, "Status"] = novo_status
+                df_faturas.update(df_para_salvar)
+                save_faturas(df_faturas, SHEET_URL)
+                st.cache_data.clear()
+            st.success(f"✅ {len(linhas_selecionadas)} fatura(s) alteradas para {novo_status}!")
+            st.rerun()
 
 # ── Prepara df para exibição ───────────────────────────────────────────────────
 df_display = df_filtrado.copy()
@@ -186,35 +206,6 @@ df_editado = st.data_editor(
     num_rows="fixed",
     disabled=["ID", "Cliente", "UC", "Mês Referência"],
 )
-
-st.divider()
-
-# ── Alteração em massa ─────────────────────────────────────────────────────────  ← NOVO BLOCO
-linhas_selecionadas = df_editado[df_editado["✅"] == True]
-
-if not linhas_selecionadas.empty:
-    st.markdown(f"**{len(linhas_selecionadas)} fatura(s) selecionada(s)**")
-    col_status, col_aplicar = st.columns([3, 1])
-    with col_status:
-        novo_status = st.selectbox(
-            "Novo status para as selecionadas",
-            options=status_opcoes,
-            key="status_massa"
-        )
-    with col_aplicar:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("⚡ Aplicar em massa"):
-            with st.spinner("Salvando..."):
-                df_para_salvar = df_editado.drop(columns=["✅"]).copy()
-                df_para_salvar["Data de Emissão"] = df_para_salvar["Data de Emissão"].astype(str).replace("None", "")
-                df_para_salvar.loc[linhas_selecionadas.index, "Status"] = novo_status
-                df_faturas.update(df_para_salvar)
-                save_faturas(df_faturas, SHEET_URL)
-                st.cache_data.clear()
-            st.success(f"✅ {len(linhas_selecionadas)} fatura(s) alteradas para {novo_status}!")
-            st.rerun()
-else:
-    st.caption("Marque as caixas na tabela para alterar o status em massa.")
 
 st.divider()
 
