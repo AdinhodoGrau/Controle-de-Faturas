@@ -3,6 +3,7 @@ import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 st.set_page_config(page_title="Controle de Faturas", layout="wide")
 
@@ -88,7 +89,7 @@ def formatar_mes(mes_str: str) -> str:
 
 # ── Config ─────────────────────────────────────────────────────────────────────
 SHEET_URL = st.secrets["SHEET_URL"]
-MES_ATUAL = datetime.now().strftime("%Y-%m")
+MES_ATUAL = (datetime.now() - relativedelta(months=1)).strftime("%Y-%m")
 status_opcoes = ["AGUARDANDO", "RECEBIDA", "VALIDADA", "ENVIADA"]  # ✅ definido aqui, antes de tudo
 
 # ── Interface ──────────────────────────────────────────────────────────────────
