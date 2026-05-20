@@ -219,22 +219,25 @@ col_checkbox = [c for c in df_editado.columns if c in ["✅", "☑"]][0]
 df_sem_checkbox = df_editado.drop(columns=[col_checkbox]).copy()
 df_original_sem_checkbox = df_display.drop(columns=[col_checkbox]).copy()
 
-# Normaliza os dois para string antes de comparar
 df_sem_checkbox["Data de Emissão"] = df_sem_checkbox["Data de Emissão"].astype(str)
 df_original_sem_checkbox["Data de Emissão"] = df_original_sem_checkbox["Data de Emissão"].astype(str)
 
-# Reseta o index antes de comparar para evitar falso positivo
 df_sem_checkbox = df_sem_checkbox.reset_index(drop=True)
 df_original_sem_checkbox = df_original_sem_checkbox.reset_index(drop=True)
 
-# Compara apenas a coluna Status (a única editável que dispara salvamento)
 houve_mudanca = not df_sem_checkbox["Status"].equals(df_original_sem_checkbox["Status"])
 
 if houve_mudanca:
     with st.spinner("Salvando automaticamente..."):
         df_para_salvar = df_sem_checkbox.copy()
         df_para_salvar["Data de Emissão"] = df_para_salvar["Data de Emissão"].replace("None", "")
+
+        # ✅ Atualiza pelo ID em vez de pelo index — evita duplicidade
+        df_faturas = df_faturas.set_index("ID")
+        df_para_salvar = df_para_salvar.set_index("ID")
         df_faturas.update(df_para_salvar)
+        df_faturas = df_faturas.reset_index()
+
         save_faturas(df_faturas, SHEET_URL)
         st.cache_data.clear()
     st.success("✅ Salvo automaticamente!")
