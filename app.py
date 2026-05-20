@@ -173,13 +173,7 @@ df_display["Data de Emissão"] = pd.to_datetime(
 df_display.insert(0, "✅", False)  # ← NOVO: coluna de seleção
 
 # ── Tabela editável ────────────────────────────────────────────────────────────
-col_table, col_btn = st.columns([6, 1])
-with col_table:
-    st.subheader("📋 Faturas")
-with col_btn:
-    if st.button("🔄 Recarregar"):
-        st.cache_data.clear()
-        st.rerun()
+st.subheader("📋 Faturas")
 
 df_editado = st.data_editor(
     df_display,
