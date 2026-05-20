@@ -205,6 +205,7 @@ df_editado = st.data_editor(
     use_container_width=True,
     num_rows="fixed",
     disabled=["ID", "Cliente", "UC", "Mês Referência"],
+    hide_index=True,
 )
 
 st.divider()
