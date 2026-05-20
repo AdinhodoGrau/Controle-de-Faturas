@@ -184,7 +184,12 @@ with col_massa:
                 st.cache_data.clear()
             st.success(f"✅ {len(linhas_selecionadas)} fatura(s) alteradas para {novo_status}!")
             st.rerun()
-
+            
+# ── Busca por cliente ──────────────────────────────────────────────────────────
+busca = st.text_input("🔍 Buscar cliente", placeholder="Digite o nome do cliente...")
+if busca:
+    df_filtrado = df_filtrado[df_filtrado["Cliente"].str.contains(busca, case=False, na=False)]
+    
 # ── Prepara df para exibição ───────────────────────────────────────────────────
 df_display = df_filtrado.copy()
 df_display["Data de Emissão"] = pd.to_datetime(
