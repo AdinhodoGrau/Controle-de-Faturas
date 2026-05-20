@@ -162,15 +162,16 @@ col4.markdown(f'<div class="kpi-card kpi-enviada"><div class="kpi-label">Enviada
 
 st.divider()
 
-# ── Filtro de status + Alteração em massa ──────────────────────────────────────
-col_filtro, col_massa = st.columns([3, 3])
+# ── Busca + Filtro de status ───────────────────────────────────────────────────
+col_busca, col_filtro = st.columns([3, 3])
+
+with col_busca:
+    busca = st.text_input("🔍 Buscar cliente", placeholder="Digite o nome do cliente...")
 
 with col_filtro:
     status_filtro = st.selectbox("Filtrar por status", ["Todos"] + status_opcoes)
-    df_filtrado = df_mes[df_mes["Status"] == status_filtro].copy() if status_filtro != "Todos" else df_mes.copy()
-            
-# ── Busca por cliente ──────────────────────────────────────────────────────────
-busca = st.text_input("🔍 Buscar cliente", placeholder="Digite o nome do cliente...")
+
+df_filtrado = df_mes[df_mes["Status"] == status_filtro].copy() if status_filtro != "Todos" else df_mes.copy()
 if busca:
     df_filtrado = df_filtrado[df_filtrado["Cliente"].str.contains(busca, case=False, na=False)]
     
