@@ -203,7 +203,7 @@ st.subheader("📋 Faturas")
 df_editado = st.data_editor(
     df_display,
     column_config={
-        "✅": st.column_config.CheckboxColumn("☑", width="small"),  # ← NOVO
+        "☑": st.column_config.CheckboxColumn("☑", width="small"),
         "Status": st.column_config.SelectboxColumn("Status", options=status_opcoes),
         "Data de Emissão": st.column_config.DateColumn("Data de Emissão", format="DD/MM/YYYY"),
     },
@@ -211,22 +211,25 @@ df_editado = st.data_editor(
     num_rows="fixed",
     disabled=["ID", "Cliente", "UC", "Mês Referência"],
     hide_index=True,
+    key="tabela_faturas",  # ← necessário para detectar mudanças
 )
 
-st.divider()
+# ── Salvar automático ao detectar mudança ──────────────────────────────────────
+df_sem_checkbox = df_editado.drop(columns=["☑"]).copy()
+df_original_sem_checkbox = df_display.drop(columns=["☑"]).copy()
 
-# ── Salvar alterações individuais ──────────────────────────────────────────────
-if st.button("💾 Salvar alterações"):
-    with st.spinner("Salvando no Google Sheets..."):
-        df_para_salvar = df_editado.drop(columns=["✅"]).copy()  # ← ATUALIZADO: remove coluna ✅
-        df_para_salvar["Data de Emissão"] = df_para_salvar["Data de Emissão"].astype(str).replace("None", "")
+# Compara ignorando tipo de data
+df_sem_checkbox["Data de Emissão"] = df_sem_checkbox["Data de Emissão"].astype(str)
+df_original_sem_checkbox["Data de Emissão"] = df_original_sem_checkbox["Data de Emissão"].astype(str)
 
+houve_mudanca = not df_sem_checkbox.equals(df_original_sem_checkbox)
+
+if houve_mudanca:
+    with st.spinner("Salvando automaticamente..."):
+        df_para_salvar = df_sem_checkbox.copy()
+        df_para_salvar["Data de Emissão"] = df_para_salvar["Data de Emissão"].replace("None", "")
         df_faturas.update(df_para_salvar)
-        novos_ids = df_para_salvar.index.difference(df_faturas.index)
-        if not novos_ids.empty:
-            df_faturas = pd.concat([df_faturas, df_para_salvar.loc[novos_ids]])
-
         save_faturas(df_faturas, SHEET_URL)
         st.cache_data.clear()
-    st.success("✅ Alterações salvas!")
+    st.success("✅ Salvo automaticamente!")
     st.rerun()
