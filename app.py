@@ -243,3 +243,31 @@ if houve_mudanca:
         st.cache_data.clear()
     st.success("✅ Salvo automaticamente!")
     st.rerun()
+
+# ── Botão aplicar em massa — discreto abaixo da tabela ────────────────────────
+linhas_selecionadas = df_editado[df_editado["☑"] == True]
+
+col_info, col_botao = st.columns([4, 1])
+
+with col_info:
+    if not linhas_selecionadas.empty:
+        st.caption(f"☑ {len(linhas_selecionadas)} fatura(s) selecionada(s) → será(ão) alterada(s) para **{novo_status}**")
+    else:
+        st.caption("Marque as caixas na tabela para alterar o status em massa.")
+
+with col_botao:
+    if st.button("⚡ Aplicar em massa", disabled=linhas_selecionadas.empty):
+        with st.spinner("Salvando..."):
+            df_para_salvar = df_editado.drop(columns=["☑"]).copy()
+            df_para_salvar["Data de Emissão"] = df_para_salvar["Data de Emissão"].astype(str).replace("None", "")
+            df_para_salvar.loc[linhas_selecionadas.index, "Status"] = novo_status
+
+            df_faturas = df_faturas.set_index("ID")
+            df_para_salvar = df_para_salvar.set_index("ID")
+            df_faturas.update(df_para_salvar)
+            df_faturas = df_faturas.reset_index()
+
+            save_faturas(df_faturas, SHEET_URL)
+            st.cache_data.clear()
+        st.success(f"✅ {len(linhas_selecionadas)} fatura(s) alteradas para {novo_status}!")
+        st.rerun()
