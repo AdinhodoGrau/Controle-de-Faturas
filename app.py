@@ -26,7 +26,7 @@ def load_faturas(sheet_url: str) -> pd.DataFrame:
     sheet = client.open_by_url(sheet_url)
     data = sheet.worksheet("faturas").get_all_records()
     return pd.DataFrame(data) if data else pd.DataFrame(
-        columns=["ID", "Cliente", "UC", "Mês Referência", "Data de Emissão", "Status"]
+        columns=["ID", "Cliente", "UC", "Distribuidora", "Mês Referência", "Data de Emissão", "Status"]
     )
 
 @st.cache_data(ttl=300)
@@ -34,7 +34,7 @@ def load_clientes(sheet_url: str) -> pd.DataFrame:
     client = get_client()
     sheet = client.open_by_url(sheet_url)
     data = sheet.worksheet("clientes").get_all_records()
-    return pd.DataFrame(data) if data else pd.DataFrame(columns=["ID", "Cliente", "UC", "Data de Emissão"])
+    return pd.DataFrame(data) if data else pd.DataFrame(columns=["ID", "Cliente", "UC", "Distribuidora", "Data de Emissão"])
 
 def save_faturas(df: pd.DataFrame, sheet_url: str):
     if df.empty:
@@ -66,6 +66,7 @@ def gerar_faturas_mes(df_faturas: pd.DataFrame, df_clientes: pd.DataFrame, mes_r
                 "ID": proximo_id,
                 "Cliente": cliente["Cliente"],
                 "UC": cliente["UC"],
+                "Distribuidora": cliente.get("Distribuidora", ""),
                 "Mês Referência": mes_ref,
                 "Data de Emissão": data_emissao,
                 "Status": "AGUARDANDO"
@@ -209,7 +210,7 @@ df_editado = st.data_editor(
     },
     use_container_width=True,
     num_rows="fixed",
-    disabled=["ID", "Cliente", "UC", "Mês Referência"],
+    disabled=["ID", "Cliente", "UC", "Distribuidora", "Mês Referência"],
     hide_index=True,
     key="tabela_faturas",  # ← necessário para detectar mudanças
 )
