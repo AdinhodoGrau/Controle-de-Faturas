@@ -198,7 +198,7 @@ st.subheader("📋 Faturas")
 df_editado = st.data_editor(
     df_display,
     column_config={
-        "✅": st.column_config.CheckboxColumn("", width="small"),  # ← NOVO
+        "✅": st.column_config.CheckboxColumn("☑", width="small"),  # ← NOVO
         "Status": st.column_config.SelectboxColumn("Status", options=status_opcoes),
         "Data de Emissão": st.column_config.DateColumn("Data de Emissão", format="DD/MM/YYYY"),
     },
