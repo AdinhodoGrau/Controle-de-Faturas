@@ -231,7 +231,10 @@ if houve_mudanca:
 # ── Botão aplicar em massa — discreto abaixo da tabela ────────────────────────
 linhas_selecionadas = df_editado[df_editado["☑"] == True]
 
-col_info, col_botao = st.columns([4, 1])
+col_info, col_select, col_botao = st.columns([3, 2, 1])
+
+with col_select:
+    novo_status = st.selectbox("", options=status_opcoes, key="status_massa", label_visibility="collapsed")
 
 with col_info:
     if not linhas_selecionadas.empty:
