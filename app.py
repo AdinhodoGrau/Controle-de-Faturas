@@ -90,7 +90,7 @@ def formatar_mes(mes_str: str) -> str:
 # ── Config ─────────────────────────────────────────────────────────────────────
 SHEET_URL = st.secrets["SHEET_URL"]
 MES_ATUAL = (datetime.now() - relativedelta(months=1)).strftime("%Y-%m")
-status_opcoes = ["AGUARDANDO", "RECEBIDA", "VALIDADA", "ENVIADA"]  # ✅ definido aqui, antes de tudo
+status_opcoes = ["AGUARDANDO", "RECEBIDA", "VALIDADA", "ENVIADA"]
 
 # ── Interface ──────────────────────────────────────────────────────────────────
 st.title("📊 Controle de Faturas")
@@ -170,15 +170,21 @@ df_display = df_filtrado.copy()
 df_display["Data de Emissão"] = pd.to_datetime(
     df_display["Data de Emissão"], errors="coerce"
 ).dt.date
+df_display.insert(0, "✅", False)  # ← NOVO: coluna de seleção
 
 # ── Tabela editável ────────────────────────────────────────────────────────────
 col_table, col_btn = st.columns([6, 1])
 with col_table:
     st.subheader("📋 Faturas")
+with col_btn:
+    if st.button("🔄 Recarregar"):
+        st.cache_data.clear()
+        st.rerun()
 
 df_editado = st.data_editor(
     df_display,
     column_config={
+        "✅": st.column_config.CheckboxColumn("", width="small"),  # ← NOVO
         "Status": st.column_config.SelectboxColumn("Status", options=status_opcoes),
         "Data de Emissão": st.column_config.DateColumn("Data de Emissão", format="DD/MM/YYYY"),
     },
@@ -189,10 +195,39 @@ df_editado = st.data_editor(
 
 st.divider()
 
-# ── Salvar ─────────────────────────────────────────────────────────────────────
+# ── Alteração em massa ─────────────────────────────────────────────────────────  ← NOVO BLOCO
+linhas_selecionadas = df_editado[df_editado["✅"] == True]
+
+if not linhas_selecionadas.empty:
+    st.markdown(f"**{len(linhas_selecionadas)} fatura(s) selecionada(s)**")
+    col_status, col_aplicar = st.columns([3, 1])
+    with col_status:
+        novo_status = st.selectbox(
+            "Novo status para as selecionadas",
+            options=status_opcoes,
+            key="status_massa"
+        )
+    with col_aplicar:
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("⚡ Aplicar em massa"):
+            with st.spinner("Salvando..."):
+                df_para_salvar = df_editado.drop(columns=["✅"]).copy()
+                df_para_salvar["Data de Emissão"] = df_para_salvar["Data de Emissão"].astype(str).replace("None", "")
+                df_para_salvar.loc[linhas_selecionadas.index, "Status"] = novo_status
+                df_faturas.update(df_para_salvar)
+                save_faturas(df_faturas, SHEET_URL)
+                st.cache_data.clear()
+            st.success(f"✅ {len(linhas_selecionadas)} fatura(s) alteradas para {novo_status}!")
+            st.rerun()
+else:
+    st.caption("Marque as caixas na tabela para alterar o status em massa.")
+
+st.divider()
+
+# ── Salvar alterações individuais ──────────────────────────────────────────────
 if st.button("💾 Salvar alterações"):
     with st.spinner("Salvando no Google Sheets..."):
-        df_para_salvar = df_editado.copy()
+        df_para_salvar = df_editado.drop(columns=["✅"]).copy()  # ← ATUALIZADO: remove coluna ✅
         df_para_salvar["Data de Emissão"] = df_para_salvar["Data de Emissão"].astype(str).replace("None", "")
 
         df_faturas.update(df_para_salvar)
