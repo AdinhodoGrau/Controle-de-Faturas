@@ -116,7 +116,7 @@ mes_selecionado = st.selectbox(
     "📅 Mês de Referência",
     options=meses_disponiveis,
     format_func=formatar_mes,
-    index=0
+    index=meses_disponiveis.index(MES_ATUAL) if MES_ATUAL in meses_disponiveis else 0
 )
 
 # ── KPIs ───────────────────────────────────────────────────────────────────────
